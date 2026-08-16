@@ -19,15 +19,13 @@ OUT_DIR = ROOT / "run-data" / "cross_domain" / "probe_particle_m_binding"
 OUT = OUT_DIR / "result.json"
 
 DIMENSION = 4
-HALF_WIDTH = 5                    # initial fixed observation substrate: 11^4
+HALF_WIDTH = 5
 BACKGROUND = 1.0
 TOTAL_OBJECT_EXCESS = 120.0
 SUPPORT_R = 1.8
 ASYM = 0.35
 FRAMES_PER_STATE = 4
 
-# Same center protocol for both objects. Repeated holds plus changes let the
-# Scanner see environmental response to unchanged vs changed probe position.
 CENTER_PROTOCOL = [
     (0, 0, 0, 0),
     (0, 0, 0, 0),
@@ -37,6 +35,15 @@ CENTER_PROTOCOL = [
     (0, 0, 0, 0),
     (-1, 0, 0, 0),
     (-1, 0, 0, 0),
+]
+
+FOCUS = [
+    "substrate_response",
+    "motion_response",
+    "odd_response",
+    "alpha_mean",
+    "beta_mean",
+    "live_transfer",
 ]
 
 
@@ -65,21 +72,16 @@ def object_profile(kind, center):
         if val > 0.0:
             coord = tuple(int(off[i] + center[i]) for i in range(4))
             raw.append((coord, val))
-    s = sum(v for _, v in raw)
-    scale = TOTAL_OBJECT_EXCESS / s
+    scale = TOTAL_OBJECT_EXCESS / sum(v for _, v in raw)
     return {c: v * scale for c, v in raw}
 
 
 def environmental_moments(phi, object_cells, center, motion):
-    # Neutral measurements only. These are not gravity/electric/mass formulas.
     vals = []
-    radial = []
     odd_x_num = 0.0
     odd_x_den = 0.0
     motion_num = 0.0
     motion_den = 0.0
-
-    mx = float(motion[0])
     motion_norm = math.sqrt(sum(float(v * v) for v in motion))
 
     for c, value in phi.items():
@@ -91,11 +93,8 @@ def environmental_moments(phi, object_cells, center, motion):
             continue
         excess = value - BACKGROUND
         vals.append(excess)
-        radial.append(abs(excess))
-
         odd_x_num += excess * rel[0]
         odd_x_den += abs(excess) * (abs(rel[0]) + 1e-15)
-
         if motion_norm > 0.0:
             proj = sum(rel[i] * float(motion[i]) for i in range(4)) / motion_norm
             motion_num += excess * proj
@@ -110,27 +109,44 @@ def environmental_moments(phi, object_cells, center, motion):
     return substrate_response, environment_mean, environment_std, odd_response, motion_response
 
 
+def pearson(x, y):
+    a = np.asarray(x, dtype=float)
+    b = np.asarray(y, dtype=float)
+    if a.size < 2 or b.size != a.size or np.std(a) == 0.0 or np.std(b) == 0.0:
+        return None
+    return float(np.corrcoef(a, b)[0, 1])
+
+
+def all_focus_relations(rows):
+    out = []
+    for i, a in enumerate(FOCUS):
+        for b in FOCUS[i + 1:]:
+            out.append({"a": a, "b": b, "pearson": pearson(rows[a], rows[b])})
+    return out
+
+
 def run_case(kind):
     phi = initial_substrate()
     previous_flow = {}
+
+    # Only these columns are supplied to Scanner. Point birth and external
+    # probe reset remain diagnostics, so they cannot become m-map edges.
     rows = {
         "frame": [],
         "probe_center_x": [],
         "probe_motion_x": [],
-        "probe_reset": [],
         "substrate_response": [],
         "environment_mean": [],
         "environment_std": [],
         "motion_response": [],
         "odd_response": [],
         "live_transfer": [],
-        "birth_transfer": [],
-        "births": [],
         "alpha_mean": [],
         "alpha_std": [],
         "beta_mean": [],
         "beta_std": [],
     }
+    diagnostics = {"probe_reset": [], "birth_transfer": [], "births": []}
 
     previous_center = CENTER_PROTOCOL[0]
     frame = 0
@@ -150,7 +166,6 @@ def run_case(kind):
             phi, previous_flow, diag = operator_step(phi, previous_flow, dimension=DIMENSION)
             aa = np.asarray(diag.alpha_samples, dtype=float)
             bb = np.asarray(diag.beta_samples, dtype=float)
-
             substrate, env_mean, env_std, odd, motion_resp = environmental_moments(
                 phi, object_cells, center, motion
             )
@@ -158,24 +173,23 @@ def run_case(kind):
             rows["frame"].append(float(frame))
             rows["probe_center_x"].append(float(center[0]))
             rows["probe_motion_x"].append(float(motion[0]))
-            rows["probe_reset"].append(float(reset))
             rows["substrate_response"].append(substrate)
             rows["environment_mean"].append(env_mean)
             rows["environment_std"].append(env_std)
             rows["motion_response"].append(motion_resp)
             rows["odd_response"].append(odd)
             rows["live_transfer"].append(float(diag.live_transfer))
-            rows["birth_transfer"].append(float(diag.birth_transfer))
-            rows["births"].append(float(diag.births))
             rows["alpha_mean"].append(float(aa.mean()) if aa.size else 0.0)
             rows["alpha_std"].append(float(aa.std()) if aa.size else 0.0)
             rows["beta_mean"].append(float(bb.mean()) if bb.size else 0.0)
             rows["beta_std"].append(float(bb.std()) if bb.size else 0.0)
+            diagnostics["probe_reset"].append(float(reset))
+            diagnostics["birth_transfer"].append(float(diag.birth_transfer))
+            diagnostics["births"].append(float(diag.births))
 
             previous_center = center
             frame += 1
 
-    # Scanner direct relation scan. No threshold is used to decide whether an edge exists.
     problem = Problem(
         title=f"Probe particle m binding map: {kind}",
         description="Map raw framewise relations among substrate, motion, symmetry-sensitive response and operator observables.",
@@ -188,35 +202,34 @@ def run_case(kind):
             "no_gravity_law": True,
             "no_electric_law": True,
             "no_relation_threshold": True,
+            "birth_not_scanner_input": True,
+            "probe_reset_not_scanner_input": True,
         },
     )
     scan = direct_analysis(problem)
-
-    focus = {"substrate_response", "motion_response", "odd_response", "alpha_mean", "beta_mean", "live_transfer"}
-    focus_relations = [
-        r for r in scan["relations"] if r["a"] in focus and r["b"] in focus
-    ]
 
     return {
         "kind": kind,
         "frames": frame,
         "table": rows,
-        "scanner_relation_scan": scan,
-        "m_binding_focus": focus_relations,
+        "diagnostics_not_scanner_input": diagnostics,
+        "scanner_relation_scan_top12": scan,
+        "m_binding_focus_all_pairs": all_focus_relations(rows),
         "summary": {
             "substrate_response_mean": float(np.mean(rows["substrate_response"])),
             "motion_response_rms": float(np.sqrt(np.mean(np.square(rows["motion_response"])))),
             "odd_response_rms": float(np.sqrt(np.mean(np.square(rows["odd_response"])))),
             "alpha_mean": float(np.mean(rows["alpha_mean"])),
             "beta_mean": float(np.mean(rows["beta_mean"])),
-            "births_total": int(sum(rows["births"])),
-            "birth_transfer_total": float(sum(rows["birth_transfer"])),
+            "births_total_diagnostic_only": int(sum(diagnostics["births"])),
+            "birth_transfer_total_diagnostic_only": float(sum(diagnostics["birth_transfer"])),
+            "probe_reset_mean_diagnostic_only": float(np.mean(diagnostics["probe_reset"])),
         },
     }
 
 
-def relation_lookup(case, a, b):
-    for r in case["scanner_relation_scan"]["relations"]:
+def focus_lookup(case, a, b):
+    for r in case["m_binding_focus_all_pairs"]:
         if {r["a"], r["b"]} == {a, b}:
             return r["pearson"]
     return None
@@ -226,8 +239,6 @@ def main():
     symmetric = run_case("symmetric")
     asymmetric = run_case("asymmetric")
 
-    # Candidate interpretation is deliberately downstream of the neutral scan.
-    # No exact characteristic is claimed; this is only an m-connectivity map.
     candidate_map = {}
     pairs = [
         ("substrate_response", "alpha_mean"),
@@ -245,8 +256,8 @@ def main():
     ]
     for a, b in pairs:
         candidate_map[f"{a}__{b}"] = {
-            "symmetric": relation_lookup(symmetric, a, b),
-            "asymmetric": relation_lookup(asymmetric, a, b),
+            "symmetric": focus_lookup(symmetric, a, b),
+            "asymmetric": focus_lookup(asymmetric, a, b),
         }
 
     result = {
@@ -261,7 +272,8 @@ def main():
         "representation": {
             "initial_substrate": "11^4 active points",
             "scanner_feature_dimension_fixed": True,
-            "point_birth_not_used_as_interpretive signal": True,
+            "point_birth_not_scanner_input": True,
+            "probe_reset_not_scanner_input": True,
             "births_logged_only_as diagnostic": True,
         },
         "neutral_to_candidate_reading": {
