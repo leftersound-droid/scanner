@@ -44,7 +44,6 @@ def derive_until_closure(memory_nodes: list[dict]) -> dict:
     memory_ids = [n.get("id") for n in memory_nodes]
     memory_text = " ".join((n.get("label", "") + " " + n.get("summary", "")) for n in memory_nodes).lower()
 
-    # Seed only what the current representation and stored evidence actually provide.
     add_fact(state, "particle_identity", "particle_1 and particle_2 belong to the same observed structural class", ["experiment premise"])
     add_fact(state, "common_order_capability", "an orientation-free common monotonic ordering is representable at current scanner resolution", ["current latent common-order scanner"])
     add_fact(state, "absolute_calibration", "no external absolute calibration is present", ["experiment constraints"], "boundary")
@@ -61,143 +60,66 @@ def derive_until_closure(memory_nodes: list[dict]) -> dict:
         add_fact(state, "uncertainty_reciprocal_law", "no reciprocal Heisenberg-like law emerged in prior multiclock uncertainty scan", memory_ids, "negative")
 
     for depth in range(1, 16):
-        created = []
-        f = state["facts"]
+        # Strict recursion: this layer may only depend on facts that existed at
+        # the start of the layer. Newly created facts become usable next layer.
+        f = dict(state["facts"])
+        proposals: list[tuple[str, str, list[str], str]] = []
 
-        def put(k: str, v: str, basis: list[str], status: str = "identified"):
-            if add_fact(state, k, v, basis, status):
-                created.append(k)
+        def propose(k: str, v: str, basis: list[str], status: str = "identified"):
+            if k not in state["facts"] and not any(p[0] == k for p in proposals):
+                proposals.append((k, v, basis, status))
 
         if "common_order_capability" in f:
-            put(
-                "emergent_time_identifiable_part",
-                "only relational event order is identifiable at this resolution; it is not yet physical time",
-                ["common_order_capability"],
-            )
-            put(
-                "time_orientation_gauge",
-                "order reversal cannot be given an absolute past/future sign without an independent causal orientation",
-                ["common_order_capability", "absolute_calibration"],
-                "gauge_boundary",
-            )
-            put(
-                "time_parameter_gauge",
-                "any strictly monotonic reparameterization preserves the currently reconstructed order, so zero and metric scale are not identifiable",
-                ["common_order_capability", "absolute_calibration"],
-                "gauge_boundary",
-            )
+            propose("emergent_time_identifiable_part", "only relational event order is identifiable at this resolution; it is not yet physical time", ["common_order_capability"])
+            propose("time_orientation_gauge", "order reversal cannot be given an absolute past/future sign without an independent causal orientation", ["common_order_capability", "absolute_calibration"], "gauge_boundary")
+            propose("time_parameter_gauge", "any strictly monotonic reparameterization preserves the currently reconstructed order, so zero and metric scale are not identifiable", ["common_order_capability", "absolute_calibration"], "gauge_boundary")
 
         if "particle_identity" in f:
-            put(
-                "mass_identifiable_part",
-                "the two particles can be placed in the same inertia/mass class, but equality does not determine an absolute common mass value",
-                ["particle_identity", "absolute_calibration"],
-            )
-            put(
-                "charge_identifiable_part",
-                "the two particles can be placed in the same charge-response class if their measured response is identical, but the class cannot be named + or - absolutely",
-                ["particle_identity", "absolute_calibration"],
-            )
-            put(
-                "particle_exchange_invariance",
-                "swapping particle labels 1 and 2 changes no intrinsic statement available from two identical particles",
-                ["particle_identity"],
-                "invariant",
-            )
+            propose("mass_identifiable_part", "the two particles can be placed in the same inertia/mass class, but equality does not determine an absolute common mass value", ["particle_identity", "absolute_calibration"])
+            propose("charge_identifiable_part", "the two particles can be placed in the same charge-response class if their measured response is identical, but the class cannot be named + or - absolutely", ["particle_identity", "absolute_calibration"])
+            propose("particle_exchange_invariance", "swapping particle labels 1 and 2 changes no intrinsic statement available from two identical particles", ["particle_identity"], "invariant")
 
         if "charge_identifiable_part" in f:
-            put(
-                "charge_global_sign_gauge",
-                "a simultaneous global sign relabeling of the two identical charge classes is observationally indistinguishable at this resolution",
-                ["charge_identifiable_part"],
-                "gauge_boundary",
-            )
-            put(
-                "absolute_charge_magnitude",
-                "absolute charge magnitude is not identifiable without a calibrated coupling/field response scale",
-                ["charge_identifiable_part", "absolute_calibration"],
-                "unresolved",
-            )
+            propose("charge_global_sign_gauge", "a simultaneous global sign relabeling of the two identical charge classes is observationally indistinguishable at this resolution", ["charge_identifiable_part"], "gauge_boundary")
+            propose("absolute_charge_magnitude", "absolute charge magnitude is not identifiable without a calibrated coupling/field response scale", ["charge_identifiable_part", "absolute_calibration"], "unresolved")
 
         if "mass_identifiable_part" in f:
-            put(
-                "absolute_mass_scale",
-                "absolute common mass scale is not identifiable from identity alone without calibrated dynamics or an external mass reference",
-                ["mass_identifiable_part", "absolute_calibration"],
-                "unresolved",
-            )
+            propose("absolute_mass_scale", "absolute common mass scale is not identifiable from identity alone without calibrated dynamics or an external mass reference", ["mass_identifiable_part", "absolute_calibration"], "unresolved")
 
         if "mass_identifiable_part" in f and "charge_identifiable_part" in f:
-            put(
-                "mass_charge_coupling",
-                "no unique mass-charge coupling law can be inferred from two identical particles without measured independent perturbation channels",
-                ["mass_identifiable_part", "charge_identifiable_part", "absolute_calibration"],
-                "unresolved",
-            )
+            propose("mass_charge_coupling", "no unique mass-charge coupling law can be inferred from two identical particles without measured independent perturbation channels", ["mass_identifiable_part", "charge_identifiable_part", "absolute_calibration"], "unresolved")
 
         if "history_charge_channel" in f and "simple_complement_charge" in f:
-            put(
-                "charge_best_current_representation",
-                "current evidence favors a history/response relational fingerprint over a simple static complement label for charge-like structure",
-                ["history_charge_channel", "simple_complement_charge"],
-                "current_best",
-            )
+            propose("charge_best_current_representation", "current evidence favors a history/response relational fingerprint over a simple static complement label for charge-like structure", ["history_charge_channel", "simple_complement_charge"], "current_best")
 
         if "inertia_channel" in f and "mass_identifiable_part" in f:
-            put(
-                "mass_best_current_representation",
-                "mass can currently be constrained only as same-class/relative inertia; the dynamical inertia channel itself is not closed",
-                ["inertia_channel", "mass_identifiable_part"],
-                "current_best",
-            )
+            propose("mass_best_current_representation", "mass can currently be constrained only as same-class/relative inertia; the dynamical inertia channel itself is not closed", ["inertia_channel", "mass_identifiable_part"], "current_best")
 
         if "emergent_time_identifiable_part" in f and "clock_representation_dependence" in f:
-            put(
-                "time_best_current_representation",
-                "the strongest current time statement is a common relational ordering whose metric realization remains representation-dependent",
-                ["emergent_time_identifiable_part", "clock_representation_dependence"],
-                "current_best",
-            )
+            propose("time_best_current_representation", "the strongest current time statement is a common relational ordering whose metric realization remains representation-dependent", ["emergent_time_identifiable_part", "clock_representation_dependence"], "current_best")
 
         if "time_best_current_representation" in f and "mass_best_current_representation" in f and "charge_best_current_representation" in f:
-            put(
-                "joint_system_current_resolution",
-                "time, mass and charge do not yet collapse to one uniquely identifiable latent scalar: time is order-like, mass is same-class/relative inertia, charge is history-sensitive response class",
-                ["time_best_current_representation", "mass_best_current_representation", "charge_best_current_representation"],
-                "current_limit",
-            )
+            propose("joint_system_current_resolution", "time, mass and charge do not yet collapse to one uniquely identifiable latent scalar: time is order-like, mass is same-class/relative inertia, charge is history-sensitive response class", ["time_best_current_representation", "mass_best_current_representation", "charge_best_current_representation"], "current_limit")
 
         if "joint_system_current_resolution" in f:
-            put(
-                "next_information_needed",
-                "to go beyond the present boundary requires new independent measurements, not more recursion: raw two-particle operator trajectories with controlled independent perturbation/response channels and no added physical law",
-                ["joint_system_current_resolution", "absolute_mass_scale", "absolute_charge_magnitude", "mass_charge_coupling"],
-                "theoretical_boundary",
-            )
+            propose("next_information_needed", "to go beyond the present boundary requires new independent measurements, not more recursion: raw two-particle operator trajectories with controlled independent perturbation/response channels and no added physical law", ["joint_system_current_resolution", "absolute_mass_scale", "absolute_charge_magnitude", "mass_charge_coupling"], "theoretical_boundary")
 
+        created = []
+        for k, v, basis, status in proposals:
+            if add_fact(state, k, v, basis, status):
+                created.append(k)
         state["iterations"].append({"depth": depth, "new_facts": created})
         if not created:
             state["closure_depth"] = depth
+            state["last_productive_depth"] = depth - 1
             break
 
     state["memory_evidence"] = memory_nodes
     state["summary"] = {
-        "time": {
-            "identified": "orientation-free common relational order",
-            "not_identified": "absolute zero, orientation and metric time scale; physical-time interpretation",
-        },
-        "mass": {
-            "identified": "same mass/inertia class for the two identical particles",
-            "not_identified": "absolute mass scale; closed inertia law",
-        },
-        "charge": {
-            "identified": "same response class; prior evidence favors history-sensitive response fingerprint",
-            "not_identified": "absolute +/- naming, absolute magnitude, unique topological carrier",
-        },
-        "joint": {
-            "identified": "separate relational invariants and their gauge freedoms",
-            "not_identified": "a unique common latent time-mass-charge generator",
-        },
+        "time": {"identified": "orientation-free common relational order", "not_identified": "absolute zero, orientation and metric time scale; physical-time interpretation"},
+        "mass": {"identified": "same mass/inertia class for the two identical particles", "not_identified": "absolute mass scale; closed inertia law"},
+        "charge": {"identified": "same response class; prior evidence favors history-sensitive response fingerprint", "not_identified": "absolute +/- naming, absolute magnitude, unique topological carrier"},
+        "joint": {"identified": "separate relational invariants and their gauge freedoms", "not_identified": "a unique common latent time-mass-charge generator"},
     }
     return state
 
