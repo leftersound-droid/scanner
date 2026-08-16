@@ -16,7 +16,7 @@ PHASE_AMP = 0.01
 WAVE_AMP = 10.0
 RING_R = 2.0
 SIGMA = 0.55
-DOMAIN_L1 = 17
+DOMAIN_L1 = 19
 MAX_DERIV = 3
 
 # Reused training protocol: m=3 advances 10 deg/frame, m=4 advances 15 deg/frame.
@@ -55,7 +55,6 @@ def wave_component(m:int, theta:float):
         if envelope < 1e-12 or rho == 0.0:
             continue
         ang=math.atan2(y,x)
-        # Non-rigid m-peak wave: maxima propagate as phase changes.
         mod=0.5*(1.0+math.cos(m*(ang-theta)))
         val=WAVE_AMP*envelope*mod
         if val > 1e-12:
@@ -110,12 +109,13 @@ def deriv_reconstruct(history):
 def run_case(spec):
     m=spec["m"]; step=math.radians(spec["step_deg"])
     cycle_frames=int(round((2*math.pi/m)/step))
-    # Include terminal state so cycle closure can be measured directly.
     frames=cycle_frames
-    # wave support is inside L1<=5; strict causal margin must exceed executed frames
+    # There are `frames` main operator applications plus one terminal readback.
+    # With wave support inside L1<=5, no disturbance may reach the fixed-domain edge.
     margin=DOMAIN_L1-5
-    if not (frames < margin+1):
-        raise RuntimeError(f"boundary guard failed: frames={frames}, margin={margin}")
+    operator_applications=frames+1
+    if not (operator_applications < margin):
+        raise RuntimeError(f"boundary guard failed: operator_applications={operator_applications}, margin={margin}")
     phi=initial_phi(); prev_flow={}; old_wave={}; old_phase=0.0
     inputs=[]; outputs=[]; rows=[]
     case_dir=OUT/spec["name"]; case_dir.mkdir(parents=True,exist_ok=True)
@@ -147,7 +147,6 @@ def run_case(spec):
             "conservation_error":float(sum(phi.values())-total_before),
         })
         inputs.append(pin); outputs.append(pout); prev_flow=next_flow
-    # terminal input at exact repeated wave/phase state, then one operator output
     theta=frames*step
     new_wave=wave_component(m,theta)
     apply_delta(phi,delta_component(old_wave,new_wave)); old_wave=new_wave
@@ -163,12 +162,12 @@ def run_case(spec):
         phi_input=np.stack(inputs),phi_output=np.stack(outputs),
         terminal_input=terminal_input,terminal_output=terminal_output,
         state_history=state_hist)
-    # Closure compares imposed identical cycle endpoints before operator application.
     closure=float(np.sqrt(np.mean((terminal_input-inputs[0])**2)))
     result={
-        "case":spec,"cycle_frames":frames,"fixed_domain_points":len(DOMAIN),
-        "domain_l1_radius":DOMAIN_L1,"wave_support_l1_max":5,
-        "causal_margin":margin,"boundary_unreachable":frames<=margin,
+        "case":spec,"cycle_frames":frames,"operator_applications":operator_applications,
+        "fixed_domain_points":len(DOMAIN),"domain_l1_radius":DOMAIN_L1,
+        "wave_support_l1_max":5,"causal_margin":margin,
+        "boundary_unreachable":operator_applications < margin,
         "births_total":int(sum(r["births"] for r in rows)+terminal_diag.births),
         "max_abs_conservation_error":max([abs(r["conservation_error"]) for r in rows]+[abs(sum(phi.values())-terminal_before)]),
         "cycle_closure_rmse_pre_operator":closure,
@@ -189,7 +188,7 @@ def main():
             "m3":"three maxima; 10 degree orientation phase step; field repeats after 12 frames",
             "m4":"four maxima; 15 degree orientation phase step; field repeats after 6 frames",
             "phase_field":"uniform small-amplitude sinusoidal potential offset, imposed externally",
-            "fixed_domain":"all R4 lattice points with L1 norm <= 17 exist from frame zero; no birth and no boundary rule",
+            "fixed_domain":"all R4 lattice points with L1 norm <= 19 exist from frame zero; no intended birth and no boundary rule",
             "derivative_test":"affine reconstruction of next local phi from phi and discrete temporal differences through order 3; analysis only",
         },
         "parameters":{
@@ -198,6 +197,7 @@ def main():
         },
         "cases":{k:{
             "cycle_frames":v["cycle_frames"],"births_total":v["births_total"],
+            "boundary_unreachable":v["boundary_unreachable"],
             "cycle_closure_rmse_pre_operator":v["cycle_closure_rmse_pre_operator"],
             "derivative_reconstruction_phi":v["derivative_reconstruction_phi"],
         } for k,v in results.items()},
