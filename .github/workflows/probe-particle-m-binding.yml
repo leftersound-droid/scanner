@@ -1,0 +1,30 @@
+name: Probe particle m binding map
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/probe_particle_m_binding/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - 'src/scanner/analyzers.py'
+      - '.github/workflows/probe-particle-m-binding.yml'
+  workflow_dispatch:
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install numpy
+        run: python -m pip install numpy
+      - name: Run probe particle m binding map
+        run: python experiments/cross_domain/probe_particle_m_binding/run.py
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-particle-m-binding-result
+          path: run-data/cross_domain/probe_particle_m_binding/result.json
