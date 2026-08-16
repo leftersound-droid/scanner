@@ -20,3 +20,5 @@ A scanner jelenleg képes több megfigyelhetőből orientációfüggetlen közö
 ## Értelmezés
 
 A futás egy identifikációs/episztemikus térképet készít, nem elektronfizikai bizonyítást. A „határ” itt azt jelenti, hogy a jelenlegi reprezentációból több, fizikailag különböző mély állapot ugyanazt a megfigyelhető relációs struktúrát adhatja.
+
+GitHub Actions benchmark: `Two identical particle recursive map`.
