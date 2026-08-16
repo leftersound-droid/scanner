@@ -25,19 +25,22 @@ scanner web
 
 Dashboard: `http://127.0.0.1:8765`
 
-Részletesen: [docs/USAGE.md](docs/USAGE.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Részletesen: [docs/USAGE.md](docs/USAGE.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [experiments/README.md](experiments/README.md)
 
 ## Repo felépítése
 
 ```text
-src/scanner/       motor, memória, router, web
+src/scanner/       motor, memória, router, web, latens relációs eszközök
 memory/graph.json  bootstrap kutatási + stratégiai gráf
 docs/              használat és architektúra
 examples/          példa bemenet
-tests/             minimális teszt
-run-data/scans/    lokális futási naplók (gitignore)
+experiments/       területenként rendezett kutatási kísérletek
+tests/             minimális regressziós tesztek
+run-data/          lokális/GitHub Actions futási eredmények (gitignore)
 ```
+
+A `experiments/` jelenleg külön területet tart fenn az R4→R3 projekciónak, emergens időnek, elektromágneses jellegnek, operátordinamikának, gravitáció/kötés vizsgálatoknak és a scanner meta-stratégiájának.
 
 ## Jelenlegi beta-határ
 
-A keretrendszer futtatható, de a konkrét korábbi R4/operator scannerek még nincsenek automatikusan beágyazva mint domain adapterek. A bootstrap gráf az eddigi kutatási tanulságokat tárolja; új fizikai scanhez a tényleges, változtatás nélküli operátor adapterét külön kell bekötni.
+A keretrendszer futtatható. A generikus relációs scanner mellett már van orientációfüggetlen latens közös-rendezés rekonstruktor és R4→R3 szintetikus kontroll. A konkrét korábbi R4/self-reflexive operator kísérleteket továbbra is külön domain adapterként kell bekötni úgy, hogy az eredeti operátor változatlan maradjon.
