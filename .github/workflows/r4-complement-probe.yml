@@ -1,0 +1,32 @@
+name: R4 complement projection probe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'experiments/r4_complement_clock_probe.py'
+      - '.github/workflows/r4-complement-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run blind complement projection probe
+        env:
+          PYTHONPATH: src
+        run: python experiments/r4_complement_clock_probe.py
+      - name: Upload benchmark result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r4-complement-probe-result
+          path: run-data/r4-complement-probe/result.json
+          if-no-files-found: error
