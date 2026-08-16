@@ -31,8 +31,8 @@ def build_table(shuffle: bool = False) -> dict[str, list[float]]:
     x4_a = [2.0 * u - 1.0 for u in hidden]
     x4_b = [-v for v in x4_a]
 
-    # Neutral projected observables.  Their names intentionally carry no time
-    # or electromagnetic semantics.  They depend on the same hidden state but
+    # Neutral projected observables. Their names intentionally carry no time
+    # or electromagnetic semantics. They depend on the same hidden state but
     # the hidden state itself is omitted from the scan input.
     p = [0.70 * u + 0.30 * math.sin(0.8 * u) for u in hidden]
     q = [0.55 * u + 0.45 * (1.0 - math.cos(0.9 * u)) for u in hidden]
