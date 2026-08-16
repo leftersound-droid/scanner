@@ -1,0 +1,30 @@
+name: Two identical particle recursive map
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'memory/**'
+      - 'experiments/cross_domain/two_identical_electron_recursive/**'
+      - '.github/workflows/two-identical-electron-recursive.yml'
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run recursive identifiability closure
+        run: python experiments/cross_domain/two_identical_electron_recursive/run.py
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: two-identical-electron-recursive-result
+          path: run-data/cross_domain/two_identical_electron_recursive/result.json
+          if-no-files-found: error
