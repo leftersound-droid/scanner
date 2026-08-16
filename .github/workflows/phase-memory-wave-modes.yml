@@ -29,3 +29,4 @@ jobs:
           name: phase-memory-wave-modes-journal
           path: run-data/cross_domain/phase_memory_wave_modes/
           compression-level: 6
+          # Journal includes the complete fixed-domain input/output state history.
