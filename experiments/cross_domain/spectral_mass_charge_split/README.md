@@ -24,3 +24,5 @@ A scanner nem kap `mass`, `charge`, elektronfizikai törvényt vagy küszöböt.
 ## Guardrail
 
 Ez szintetikus reprezentációs kontroll. Nem bizonyítja, hogy a primitív R4 operátor valóban létrehozza ezeket a komponenseket. A következő fizikai teszthez nyers véges objektum/örvény operátortrajektória szükséges.
+
+A GitHub Actions futás a nyers mean/HF amplitúdókat és a két csatorna változásirányát menti; nincs döntési küszöb.
