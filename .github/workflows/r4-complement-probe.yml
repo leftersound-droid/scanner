@@ -1,4 +1,4 @@
-name: R4 complement projection probe
+name: R4 projection benchmarks
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/**'
       - 'experiments/r4_complement_clock_probe.py'
+      - 'experiments/r4_projection/**'
       - '.github/workflows/r4-complement-probe.yml'
 
 jobs:
@@ -19,14 +20,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run blind complement projection probe
+      - name: Run first complement projection control
         env:
           PYTHONPATH: src
         run: python experiments/r4_complement_clock_probe.py
-      - name: Upload benchmark result
+      - name: Run nonlinear latent common-order control
+        env:
+          PYTHONPATH: src
+        run: python experiments/r4_projection/latent_common_order/run.py
+      - name: Upload first benchmark result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: r4-complement-probe-result
           path: run-data/r4-complement-probe/result.json
+          if-no-files-found: error
+      - name: Upload nonlinear latent-order result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r4-latent-common-order-result
+          path: run-data/r4_projection/latent_common_order/result.json
           if-no-files-found: error
