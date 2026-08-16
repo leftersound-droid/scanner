@@ -25,3 +25,5 @@ Post-hoc candidate reading only:
 The desired output is only an `m` binding/connectivity map: which channels co-vary at this representation level. There is no edge threshold and no claim that any measured relation is a physical law.
 
 Point birth is not used to interpret the Scanner map. Birth counts and birth transfer are logged only as diagnostics so we can see whether the finite initial substrate boundary became relevant during the run.
+
+The GitHub Actions workflow runs the symmetric and asymmetric cases together so their binding maps are directly comparable.
