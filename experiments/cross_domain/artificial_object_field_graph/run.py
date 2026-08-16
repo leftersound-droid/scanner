@@ -1,216 +1,251 @@
 from __future__ import annotations
 
 import json
+import math
+import sys
+from itertools import product
 from pathlib import Path
+
 import numpy as np
 
-# Reproducible probe test using the currently accessible 4D local-flow candidate
-# from leftersound-droid/szoliton-elektron-modell/src/simulation.ts.
-# IMPORTANT: this is the legacy/candidate operator currently visible on GitHub;
-# its braking factor increases with diff and therefore is NOT claimed to be the
-# later negative-feedback operator discussed in the research thread.
-
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "src"))
+
+from scanner.self_reflexive_operator import operator_step
+
 OUT_DIR = ROOT / "run-data" / "cross_domain" / "artificial_object_field_graph"
 OUT = OUT_DIR / "result.json"
 
-N = 15
-M = N ** 4
+DIMENSION = 4
 STEPS = 28
-FLOW_RATE = 0.25
-BRAKING_K = 50.0
 BACKGROUND = 1.0
+INITIAL_HALF_WIDTH = 3          # initial active substrate: 7^4 points
 TOTAL_OBJECT_EXCESS = 180.0
 SUPPORT_R = 2.4
 ASYM = 0.35
 
-
-def build_neighbors(n: int) -> np.ndarray:
-    idx = np.arange(n**4, dtype=np.int64).reshape((n, n, n, n))
-    out = np.full((n**4, 8), -1, dtype=np.int64)
-    dirs = [(-1,0,0,0),(1,0,0,0),(0,-1,0,0),(0,1,0,0),(0,0,-1,0),(0,0,1,0),(0,0,0,-1),(0,0,0,1)]
-    for k,(dx,dy,dz,dw) in enumerate(dirs):
-        xs = slice(max(0,-dx), min(n,n-dx)); xt = slice(max(0,dx), min(n,n+dx))
-        ys = slice(max(0,-dy), min(n,n-dy)); yt = slice(max(0,dy), min(n,n+dy))
-        zs = slice(max(0,-dz), min(n,n-dz)); zt = slice(max(0,dz), min(n,n+dz))
-        ws = slice(max(0,-dw), min(n,n-dw)); wt = slice(max(0,dw), min(n,n+dw))
-        src = idx[xs,ys,zs,ws].ravel(); dst = idx[xt,yt,zt,wt].ravel()
-        out[src,k] = dst
-    return out
-
-NEIGH = build_neighbors(N)
-VALID = NEIGH >= 0
-NEIGH_SAFE = np.where(VALID, NEIGH, 0)
+# Same imposed artificial-object path for every shape.  This is a probe input,
+# not a force law.  Environmental points outside the prescribed object are
+# created only by the operator's recovered birth branch.
+PATH = [(1, 0, 0, 0), (-1, 0, 0, 0), (0, 1, 0, 0), (0, -1, 0, 0)]
 
 
-def apply_flow(grid: np.ndarray) -> np.ndarray:
-    vals = grid[:, None]
-    nvals = grid[NEIGH_SAFE]
-    diff = np.where(VALID, vals - nvals, 0.0)
-    diff = np.where(diff > 0.0, diff, 0.0)
-    diff_sum = diff.sum(axis=1)
-    count = (diff > 0.0).sum(axis=1)
-    braking = np.zeros_like(diff_sum)
-    active = diff_sum > 1e-12
-    braking[active] = diff_sum[active] / (diff_sum[active] + BRAKING_K * count[active])
-    total_out = grid * FLOW_RATE * braking
-    portions = np.zeros_like(diff)
-    portions[active] = total_out[active, None] * diff[active] / diff_sum[active, None]
-    outgoing = portions.sum(axis=1)
-    flat_dst = NEIGH_SAFE[VALID]
-    flat_w = portions[VALID]
-    incoming = np.bincount(flat_dst, weights=flat_w, minlength=M)
-    return grid - outgoing + incoming
-
-coords = np.indices((N,N,N,N), dtype=float)
-center = (N-1)/2.0
-rel0 = [coords[i]-center for i in range(4)]
-r2_0 = sum(r*r for r in rel0)
-
-# Common imposed rigid-body path. Successive centers are Manhattan distance 2,
-# while the local operator propagates one neighbor per update. This is an imposed
-# dimensionless probe ratio, not an inferred physical constant.
-path = [(1,0,0,0),(-1,0,0,0),(0,1,0,0),(0,-1,0,0)]
+def initial_substrate() -> dict[tuple[int, int, int, int], float]:
+    rng = range(-INITIAL_HALF_WIDTH, INITIAL_HALF_WIDTH + 1)
+    return {tuple(c): BACKGROUND for c in product(rng, repeat=4)}
 
 
-def profile(kind: str, shift: tuple[int,int,int,int]) -> np.ndarray:
-    rel = [coords[i] - (center + shift[i]) for i in range(4)]
-    r2 = sum(r*r for r in rel)
-    r = np.sqrt(r2)
-    base = np.exp(-0.5*r2/(1.15**2)) * (r <= SUPPORT_R)
-    eps = 1e-9
-    if kind == "symmetric":
-        mod = np.ones_like(base)
-    elif kind == "dipole_x":
-        mod = 1.0 + ASYM * rel[0] / SUPPORT_R
-    elif kind == "quadrupole_xy":
-        mod = 1.0 + ASYM * (rel[0]**2 - rel[1]**2) / (SUPPORT_R**2)
-    elif kind == "mixed_xyz":
-        mod = 1.0 + ASYM * (rel[0] + rel[1] - rel[2]) / (np.sqrt(3.0)*SUPPORT_R)
-    else:
-        raise ValueError(kind)
-    raw = np.clip(base * mod, 0.0, None)
-    raw_sum = raw.sum()
-    raw *= TOTAL_OBJECT_EXCESS / raw_sum
-    return raw.ravel()
+def object_profile(kind: str, shift: tuple[int, int, int, int]):
+    # Enumerate only integer sites inside the finite support around the imposed probe.
+    lo = math.floor(-SUPPORT_R) - 1
+    hi = math.ceil(SUPPORT_R) + 1
+    rows = []
+    for off in product(range(lo, hi + 1), repeat=4):
+        r2 = sum(float(v * v) for v in off)
+        r = math.sqrt(r2)
+        if r > SUPPORT_R:
+            continue
+        base = math.exp(-0.5 * r2 / (1.15 ** 2))
+        x, y, z, w = map(float, off)
+        if kind == "symmetric":
+            mod = 1.0
+        elif kind == "dipole_x":
+            mod = 1.0 + ASYM * x / SUPPORT_R
+        elif kind == "quadrupole_xy":
+            mod = 1.0 + ASYM * (x * x - y * y) / (SUPPORT_R ** 2)
+        elif kind == "mixed_xyz":
+            mod = 1.0 + ASYM * (x + y - z) / (math.sqrt(3.0) * SUPPORT_R)
+        else:
+            raise ValueError(kind)
+        raw = max(base * mod, 0.0)
+        if raw > 0.0:
+            coord = tuple(int(off[i] + shift[i]) for i in range(4))
+            rows.append((coord, raw))
+
+    raw_sum = sum(v for _, v in rows)
+    scale = TOTAL_OBJECT_EXCESS / raw_sum
+    return {coord: v * scale for coord, v in rows}
 
 
-def radial_features(field: np.ndarray) -> list[float]:
-    arr = field.reshape((N,N,N,N)) - BACKGROUND
-    r = np.sqrt(r2_0)
+def radial_environment_features(phi, object_cells):
+    # No mean/HF decomposition is assumed.  The graph is built directly from
+    # raw environmental potential and topology around the origin.
+    shells = [(0, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 8)]
     feats = []
-    for lo,hi in [(0,2),(2,3),(3,4),(4,5),(5,6)]:
-        mask = (r >= lo) & (r < hi)
-        feats.append(float(arr[mask].mean()))
-        feats.append(float(arr[mask].std()))
+    for lo, hi in shells:
+        vals = []
+        for c, value in phi.items():
+            if c in object_cells:
+                continue
+            r = math.sqrt(sum(float(v * v) for v in c))
+            if lo <= r < hi:
+                vals.append(value)
+        if vals:
+            a = np.asarray(vals, dtype=float)
+            feats.extend([float(a.mean()), float(a.std()), float(len(vals))])
+        else:
+            feats.extend([0.0, 0.0, 0.0])
     return feats
 
 
+def max_radius(phi):
+    return max((math.sqrt(sum(float(v * v) for v in c)) for c in phi), default=0.0)
+
+
 def run_case(kind: str) -> dict:
-    grid = np.full(M, BACKGROUND, dtype=float)
-    trace = []
+    phi = initial_substrate()
+    previous_flow = {}
+    frame_features = []
     injections = []
-    fields = []
+    births = []
+    live_transfer = []
+    birth_transfer = []
+    alpha_mean = []
+    alpha_std = []
+    beta_mean = []
+    beta_std = []
+    point_counts = []
+    radii = []
+    conservation_error = []
+
     for step in range(STEPS):
-        obj = profile(kind, path[step % len(path)])
-        target = BACKGROUND + obj
-        mask = obj > 0.0
-        # Prescribed rigid artificial object: reset only object cells to the same
-        # object profile before each environmental flow step. Injection is logged.
-        before = grid.copy()
-        injection = float(np.sum(target[mask] - grid[mask]))
-        grid[mask] = target[mask]
-        grid = apply_flow(grid)
-        injections.append(injection)
-        outside = ~mask
-        excess = grid[outside] - BACKGROUND
-        trace.append(float(excess.mean()))
-        fields.append(radial_features(grid))
-    field_mat = np.array(fields)
+        obj = object_profile(kind, PATH[step % len(PATH)])
+        object_cells = set(obj)
+
+        # The probe itself is externally prescribed.  Its imposed reset/activation
+        # is logged; it is not counted as environmental point birth.
+        injection = 0.0
+        for coord, excess in obj.items():
+            target = BACKGROUND + excess
+            injection += target - phi.get(coord, 0.0)
+            phi[coord] = target
+        injections.append(float(injection))
+
+        phi, previous_flow, diag = operator_step(phi, previous_flow, dimension=DIMENSION)
+        births.append(diag.births)
+        live_transfer.append(diag.live_transfer)
+        birth_transfer.append(diag.birth_transfer)
+        conservation_error.append(diag.total_after - diag.total_before)
+
+        aa = np.asarray(diag.alpha_samples, dtype=float)
+        bb = np.asarray(diag.beta_samples, dtype=float)
+        alpha_mean.append(float(aa.mean()) if aa.size else 0.0)
+        alpha_std.append(float(aa.std()) if aa.size else 0.0)
+        beta_mean.append(float(bb.mean()) if bb.size else 0.0)
+        beta_std.append(float(bb.std()) if bb.size else 0.0)
+
+        point_counts.append(len(phi))
+        radii.append(max_radius(phi))
+        frame_features.append(radial_environment_features(phi, object_cells))
+
+    mat = np.asarray(frame_features, dtype=float)
     graph = np.concatenate([
-        field_mat.mean(axis=0),
-        field_mat.std(axis=0),
-        np.array([np.mean(trace), np.std(trace), np.mean(injections), np.std(injections)])
+        mat.mean(axis=0),
+        mat.std(axis=0),
+        np.asarray([
+            np.mean(point_counts), np.std(point_counts),
+            np.mean(radii), np.std(radii),
+            np.mean(births), np.std(births),
+            np.mean(live_transfer), np.mean(birth_transfer),
+            np.mean(alpha_mean), np.mean(alpha_std),
+            np.mean(beta_mean), np.mean(beta_std),
+            np.mean(injections), np.std(injections),
+        ], dtype=float),
     ])
+
     return {
         "graph": graph.tolist(),
-        "trace_mean": float(np.mean(trace)),
-        "trace_std": float(np.std(trace)),
+        "final_active_points": int(point_counts[-1]),
+        "final_max_radius": float(radii[-1]),
+        "births_total": int(sum(births)),
+        "birth_transfer_total": float(sum(birth_transfer)),
+        "live_transfer_total": float(sum(live_transfer)),
+        "alpha_mean_over_frames": float(np.mean(alpha_mean)),
+        "beta_mean_over_frames": float(np.mean(beta_mean)),
         "injection_mean": float(np.mean(injections)),
-        "final_total_excess": float(np.sum(grid - BACKGROUND)),
+        "max_abs_operator_conservation_error": float(np.max(np.abs(conservation_error))),
     }
 
 
-def cosine(a,b):
-    a=np.asarray(a,float); b=np.asarray(b,float)
-    na=np.linalg.norm(a); nb=np.linalg.norm(b)
-    return None if na==0 or nb==0 else float(np.dot(a,b)/(na*nb))
+def cosine(a, b):
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    na = np.linalg.norm(a)
+    nb = np.linalg.norm(b)
+    return None if na == 0 or nb == 0 else float(np.dot(a, b) / (na * nb))
 
 
 def main():
-    kinds = ["symmetric","dipole_x","quadrupole_xy","mixed_xyz"]
+    kinds = ["symmetric", "dipole_x", "quadrupole_xy", "mixed_xyz"]
     cases = {k: run_case(k) for k in kinds}
-    g0 = np.array(cases["symmetric"]["graph"])
-    residuals = {}
+    g0 = np.asarray(cases["symmetric"]["graph"], dtype=float)
+
     similarities = {}
+    residual_norms = {}
+    residual_vectors = {}
     for k in kinds:
-        g = np.array(cases[k]["graph"])
-        residuals[k] = float(np.linalg.norm(g-g0))
-        similarities[k] = cosine(g,g0)
-    asym_graphs = [np.array(cases[k]["graph"]) for k in kinds[1:]]
-    common = np.mean(np.vstack([np.array(cases[k]["graph"]) for k in kinds]), axis=0)
-    asym_residuals = [g-g0 for g in asym_graphs]
+        g = np.asarray(cases[k]["graph"], dtype=float)
+        similarities[k] = cosine(g, g0)
+        residual = g - g0
+        residual_norms[k] = float(np.linalg.norm(residual))
+        residual_vectors[k] = residual
+
     pair_residual_cos = {}
-    for i,a in enumerate(kinds[1:]):
-        for j,b in enumerate(kinds[1:]):
-            if j>i:
-                pair_residual_cos[f"{a}__{b}"] = cosine(asym_residuals[i], asym_residuals[j])
+    for i, a in enumerate(kinds[1:]):
+        for j, b in enumerate(kinds[1:]):
+            if j > i:
+                pair_residual_cos[f"{a}__{b}"] = cosine(residual_vectors[a], residual_vectors[b])
+
+    common = np.mean(np.vstack([np.asarray(cases[k]["graph"], float) for k in kinds]), axis=0)
 
     result = {
-        "experiment":"artificial_object_field_graph",
-        "status":"driven artificial-object probe on accessible 4D local-flow operator candidate",
-        "operator_source":{
-            "repo":"leftersound-droid/szoliton-elektron-modell",
-            "file":"src/simulation.ts",
-            "source_blob_sha":"0c41e37f7f6020071acdde7f916b3ea44f4c0e01",
-            "warning":"Accessible GitHub operator uses brakingFactor=diffSum/(diffSum+K*n), so this run is not claimed to represent the later negative-feedback operator."
+        "experiment": "artificial_object_field_graph",
+        "status": "artificial-object probe on reconstructed framewise self-reflexive operator",
+        "operator": {
+            "alpha": "positive local potential difference / local positive-difference sum",
+            "beta": "previous-frame local edge flow / previous-frame local outgoing-flow sum",
+            "coupling": "J = C * alpha / (1 + beta)",
+            "C": "mean positive local potential difference",
+            "alpha_beta_fixed_parameters": False,
+            "alpha_beta_internal_evolution_law": False,
+            "point_birth": "recovered ratio-capacity rule from onreflexiv_cpu_gpu_dense_bundle",
+            "birth_threshold": None,
+            "external_braking_K": None,
         },
-        "guardrails":{
-            "gravity_law_inserted":False,
-            "electric_law_inserted":False,
-            "mass_or_charge_labels_used_in_analysis":False,
-            "mean_hf_components_predefined":False,
-            "object_total_excess_equal_across_shapes":True,
-            "common_motion_path_equal_across_shapes":True,
-            "object_is_externally_prescribed_rigid_probe":True,
-            "object_reset_injection_logged":True
+        "guardrails": {
+            "gravity_law_inserted": False,
+            "electric_law_inserted": False,
+            "mass_or_charge_labels_used_in_analysis": False,
+            "mean_hf_components_predefined": False,
+            "object_total_excess_equal_across_shapes": True,
+            "common_motion_path_equal_across_shapes": True,
+            "object_is_externally_prescribed_probe": True,
+            "environmental_point_birth_only_from_operator": True,
         },
-        "numerics":{
-            "grid":"15^4",
-            "steps":STEPS,
-            "flow_rate":FLOW_RATE,
-            "braking_k":BRAKING_K,
-            "background":BACKGROUND,
-            "object_total_excess":TOTAL_OBJECT_EXCESS,
-            "path_manhattan_jump":2,
-            "local_neighbor_propagation_per_step":1
+        "numerics": {
+            "initial_active_substrate": "7^4",
+            "steps": STEPS,
+            "background_initial_phi": BACKGROUND,
+            "object_total_excess": TOTAL_OBJECT_EXCESS,
         },
-        "cases":cases,
-        "graph_comparison":{
-            "cosine_to_symmetric":similarities,
-            "residual_norm_from_symmetric":residuals,
-            "asymmetric_residual_pair_cosines":pair_residual_cos,
-            "common_graph":common.tolist()
+        "cases": cases,
+        "graph_comparison": {
+            "cosine_to_symmetric": similarities,
+            "residual_norm_from_symmetric": residual_norms,
+            "asymmetric_residual_pair_cosines": pair_residual_cos,
+            "common_graph": common.tolist(),
         },
-        "interpretation_limits":{
-            "positive_meaning":"If all object graphs share a strong common component while asymmetric probes add reproducible residual structure, the operator/environment can separate common object-field response from symmetry-dependent response at this resolution.",
-            "negative_meaning":"If asymmetry strongly changes the whole graph or residuals have no reproducible structure, the proposed separation is not supported in this operator candidate/probe design.",
-            "not_evidence_for":"physical mass, gravity, electric charge, electric field, or the latest operator until rerun with the correct current operator"
-        }
+        "interpretation_limits": {
+            "positive_meaning": "A shared graph component plus reproducible asymmetry-dependent residual supports structural separation at this operator resolution.",
+            "negative_meaning": "If the whole graph changes with shape or residual directions are inconsistent, this separation is not supported.",
+            "not_evidence_for": "physical mass, gravity, electric charge or electric field; labels remain post-hoc hypotheses",
+        },
     }
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(result,indent=2),encoding="utf-8")
-    print(json.dumps(result,indent=2))
+    OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print(json.dumps(result, indent=2))
+
 
 if __name__ == "__main__":
     main()
