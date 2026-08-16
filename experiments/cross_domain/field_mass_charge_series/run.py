@@ -91,8 +91,10 @@ def main():
     s2_mean = [r["mean_amp"] for r in s2_rows]
     s2_hf = [r["hf_amp"] for r in s2_rows]
 
-    # S3: independent sweep: mean and HF controls intentionally decorrelated.
-    hf_independent = [0.12, 0.02, 0.08, 0.00, 0.05]
+    # S3: independent sweep. The HF controls are mirror-symmetric around the
+    # mean-control center, giving zero covariance by construction without
+    # imposing any physical relation.
+    hf_independent = [0.12, 0.02, 0.08, 0.02, 0.12]
     s3_rows = []
     for m, h in zip(mean_levels, hf_independent):
         sig = signal(mean_amp=m, hf_amp=h)
