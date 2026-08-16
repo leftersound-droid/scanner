@@ -1,0 +1,27 @@
+name: Spectral mass charge split
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/cross_domain/spectral_mass_charge_split/**'
+      - '.github/workflows/spectral-mass-charge-split.yml'
+
+jobs:
+  spectral-split:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run spectral separation control
+        run: python experiments/cross_domain/spectral_mass_charge_split/run.py
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectral-mass-charge-split-result
+          path: run-data/cross_domain/spectral_mass_charge_split/result.json
