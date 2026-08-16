@@ -1,0 +1,27 @@
+name: Field mass charge experiment series
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/cross_domain/field_mass_charge_series/**'
+      - '.github/workflows/field-mass-charge-series.yml'
+
+jobs:
+  series:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run six-stage field mass charge series
+        run: python experiments/cross_domain/field_mass_charge_series/run.py
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-mass-charge-series-result
+          path: run-data/cross_domain/field_mass_charge_series/result.json
