@@ -48,13 +48,45 @@ class GraphMemory:
         return matches[:limit]
 
     def strategy_stats(self, strategy: str) -> dict[str, float]:
-        return self.data["strategy_stats"].get(strategy, {"runs": 0, "mean_score": 0.0, "mean_ms": 0.0})
+        raw = self.data["strategy_stats"].get(strategy, {})
+        return {
+            "runs": int(raw.get("runs", 0)),
+            "mean_score": float(raw.get("mean_score", 0.0)),
+            "mean_ms": float(raw.get("mean_ms", 0.0)),
+            "validated_runs": int(raw.get("validated_runs", 0)),
+            "mean_validation_score": float(raw.get("mean_validation_score", 0.0)),
+        }
 
-    def record_strategy(self, strategy: str, score: float, elapsed_ms: float) -> None:
+    def record_strategy_run(self, strategy: str, elapsed_ms: float) -> None:
         old = self.strategy_stats(strategy)
         n = old["runs"] + 1
         self.data["strategy_stats"][strategy] = {
+            **old,
             "runs": n,
-            "mean_score": old["mean_score"] + (score - old["mean_score"]) / n,
             "mean_ms": old["mean_ms"] + (elapsed_ms - old["mean_ms"]) / n,
         }
+
+    def record_validation(self, strategy: str, score: float) -> None:
+        """Record an externally supplied scientific/domain validation score.
+
+        The memory does not define the score.  A domain validator or blind
+        validation experiment supplies it after the strategy has produced an
+        output.  This keeps strategy learning outside the physical operator.
+        """
+        old = self.strategy_stats(strategy)
+        n = old["validated_runs"] + 1
+        self.data["strategy_stats"][strategy] = {
+            **old,
+            "validated_runs": n,
+            "mean_validation_score": old["mean_validation_score"] + (float(score) - old["mean_validation_score"]) / n,
+            # compatibility field for older dashboards; now mirrors real validation
+            "mean_score": old["mean_validation_score"] + (float(score) - old["mean_validation_score"]) / n,
+        }
+
+    def record_strategy(self, strategy: str, score: float, elapsed_ms: float) -> None:
+        """Backward-compatible helper for older callers.
+
+        New code should record execution and external validation separately.
+        """
+        self.record_strategy_run(strategy, elapsed_ms)
+        self.record_validation(strategy, score)
