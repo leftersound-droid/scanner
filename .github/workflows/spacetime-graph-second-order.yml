@@ -1,0 +1,28 @@
+name: Spacetime graph second-order
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/spacetime_graph_second_order/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/spacetime-graph-second-order.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run spacetime graph second-order experiment
+        run: python experiments/cross_domain/spacetime_graph_second_order/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacetime-graph-second-order-journal
+          path: run-data/cross_domain/spacetime_graph_second_order/
+          compression-level: 6
