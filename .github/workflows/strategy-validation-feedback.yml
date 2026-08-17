@@ -1,0 +1,29 @@
+name: Strategy validation feedback
+
+on:
+  pull_request:
+    paths:
+      - 'src/scanner/memory.py'
+      - 'src/scanner/strategies.py'
+      - 'src/scanner/engine.py'
+      - 'experiments/meta_strategy/strategy_validation_feedback/**'
+      - '.github/workflows/strategy-validation-feedback.yml'
+  workflow_dispatch:
+
+jobs:
+  method-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run external-validation strategy learner test
+        run: python experiments/meta_strategy/strategy_validation_feedback/run.py
+      - name: Upload method-test journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: strategy-validation-feedback-journal
+          path: run-data/meta_strategy/strategy_validation_feedback/
+          compression-level: 6
