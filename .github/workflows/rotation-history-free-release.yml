@@ -1,0 +1,27 @@
+name: Rotation history free release
+
+on:
+  push:
+    branches: [agent/scanner-v2-beta]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run rotation history free-release experiment
+        run: python experiments/cross_domain/rotation_history_free_release/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: rotation-history-free-release-journal
+          path: run-data/cross_domain/rotation_history_free_release/
+          if-no-files-found: warn
+          compression-level: 6
