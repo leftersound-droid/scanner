@@ -1,0 +1,27 @@
+name: R4 pulse rotation release
+
+on:
+  push:
+    branches: [agent/scanner-v2-beta]
+    paths:
+      - 'experiments/cross_domain/r4_pulse_rotation_release/**'
+      - '.github/workflows/r4-pulse-rotation-release.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run R4 pulse rotation release experiment
+        run: python experiments/cross_domain/r4_pulse_rotation_release/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: r4-pulse-rotation-release-journal
+          path: run-data/cross_domain/r4_pulse_rotation_release/
+          if-no-files-found: warn
