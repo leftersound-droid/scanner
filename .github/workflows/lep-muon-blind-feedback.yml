@@ -1,0 +1,32 @@
+name: LEP muon blind strategy feedback
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/meta_strategy/lep_muon_blind_feedback/**'
+      - 'src/scanner/engine.py'
+      - 'src/scanner/memory.py'
+      - 'src/scanner/strategies.py'
+      - 'src/scanner/analyzers.py'
+      - '.github/workflows/lep-muon-blind-feedback.yml'
+  workflow_dispatch:
+
+jobs:
+  real-data-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy pyyaml hepdata-cli
+      - name: Run real DELPHI to OPAL blind feedback test
+        run: python experiments/meta_strategy/lep_muon_blind_feedback/run_with_cli.py
+      - name: Upload complete journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lep-muon-blind-feedback-journal
+          path: run-data/meta_strategy/lep_muon_blind_feedback/
+          compression-level: 6

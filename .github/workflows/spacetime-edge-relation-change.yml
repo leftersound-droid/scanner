@@ -1,0 +1,28 @@
+name: Spacetime edge relation change
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/spacetime_edge_relation_change/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/spacetime-edge-relation-change.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run spacetime edge relation change experiment
+        run: python experiments/cross_domain/spacetime_edge_relation_change/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacetime-edge-relation-change-journal
+          path: run-data/cross_domain/spacetime_edge_relation_change/
+          compression-level: 6

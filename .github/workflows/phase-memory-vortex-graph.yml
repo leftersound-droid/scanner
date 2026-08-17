@@ -1,0 +1,32 @@
+name: Phase memory vortex graph
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/phase_memory_vortex_graph/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - 'src/scanner/analyzers.py'
+      - '.github/workflows/phase-memory-vortex-graph.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install numpy
+        run: python -m pip install numpy
+      - name: Run phase-memory vortex graph series
+        run: python experiments/cross_domain/phase_memory_vortex_graph/run.py
+      - name: Upload full measurement journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-memory-vortex-graph-journal
+          path: run-data/cross_domain/phase_memory_vortex_graph/
+          compression-level: 6

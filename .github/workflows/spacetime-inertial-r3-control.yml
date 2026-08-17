@@ -1,0 +1,28 @@
+name: Spacetime inertial R3 control
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/spacetime_inertial_r3_control/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/spacetime-inertial-r3-control.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run spacetime inertial R3 control
+        run: python experiments/cross_domain/spacetime_inertial_r3_control/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacetime-inertial-r3-control-journal
+          path: run-data/cross_domain/spacetime_inertial_r3_control/
+          compression-level: 6

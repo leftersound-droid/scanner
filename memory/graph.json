@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "name": "Scanner research + strategy memory bootstrap",
+    "status": "working research memory, not established physics",
+    "version": "0.2-beta-bootstrap"
+  },
+  "nodes": [
+    {"id":"research:self_reflexive_operator","kind":"research","label":"Self-reflexive operator","summary":"Minimal local recursive operator; field/state is memory; no extra stabilizing rules.","tags":["operator","local","recursive","r4"]},
+    {"id":"method:no_extra_rules","kind":"method","label":"No-extra-rules directive","summary":"Implement only explicitly defined operator/experiment; deviations must be separated and agreed.","tags":["falsification","guardrail"]},
+    {"id":"method:scanner_pipeline","kind":"method","label":"Recursive scanner pipeline","summary":"scan → blind test → complement → internal graph → phenomenology → prediction → falsification → residual → recurse","tags":["scanner","recursive","validation"]},
+    {"id":"method:analogy","kind":"method","label":"Graph-pattern analogy","summary":"Structural analogy narrows hypothesis space but is not evidence of causal identity.","tags":["intuition","analogy","graph"]},
+    {"id":"method:model_world_distance","kind":"method","label":"Model-world structural distance","summary":"Model fit should be treated as measurable structural correspondence, not ontological identity.","tags":["distance","fit","epistemology"]},
+    {"id":"experiment:emergent_time","kind":"experiment","label":"Emergent time completeness ladder","summary":"L1/L2/L3 clocks showed strong representation dependence; L3 dynamic state restored clock quality.","tags":["time","clock","dynamics"]},
+    {"id":"result:multiclock_uncertainty_null","kind":"result","label":"Multi-clock uncertainty null","summary":"No Heisenberg-like reciprocal law emerged; effective law changed strongly with clock representation.","tags":["negative","clock","uncertainty"]},
+    {"id":"experiment:eotvos_analogue","kind":"experiment","label":"Eotvos analogue","summary":"Heterogeneous object family did not show universal free-fall-like invariance; representation/common clock underresolved.","tags":["negative","gravity","binding"]},
+    {"id":"experiment:electron_recursive","kind":"experiment","label":"Electron recursive scan","summary":"Dynamic/history graph improved odd field-response closure; curvature/inertia-like channel remained unresolved.","tags":["electron","history","charge","negative"]},
+    {"id":"result:complement_not_charge","kind":"result","label":"Simple complement is not charge complement","summary":"Amplitude/orientation complement did not reverse charge-like odd response; dipole complement mainly affected even/polarization channel.","tags":["electron","charge","complement","negative"]},
+    {"id":"method:negative_results","kind":"method","label":"Negative results are memory","summary":"Failures, nulls and representation breakdowns are first-class strategic information.","tags":["negative","strategy","memory"]},
+    {"id":"method:meta_graph","kind":"method","label":"Cross-law meta-graph","summary":"Intersect independently reconstructed law-graphs to search for deeper common latent structure.","tags":["meta-graph","cross-domain"]}
+  ],
+  "edges": [
+    {"source":"research:self_reflexive_operator","relation":"constrained_by","target":"method:no_extra_rules"},
+    {"source":"method:scanner_pipeline","relation":"uses","target":"method:negative_results"},
+    {"source":"method:scanner_pipeline","relation":"can_use","target":"method:analogy"},
+    {"source":"method:scanner_pipeline","relation":"extends_to","target":"method:meta_graph"},
+    {"source":"experiment:electron_recursive","relation":"produced","target":"result:complement_not_charge"},
+    {"source":"result:complement_not_charge","relation":"supports_strategy","target":"method:negative_results"},
+    {"source":"result:multiclock_uncertainty_null","relation":"supports_strategy","target":"method:negative_results"},
+    {"source":"experiment:eotvos_analogue","relation":"supports_strategy","target":"method:negative_results"},
+    {"source":"experiment:emergent_time","relation":"motivates","target":"method:meta_graph"},
+    {"source":"method:model_world_distance","relation":"requires","target":"method:scanner_pipeline"}
+  ],
+  "strategy_stats": {}
+}

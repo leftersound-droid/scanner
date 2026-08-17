@@ -1,0 +1,28 @@
+name: R3 R4 metric invariant search
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/r3_r4_metric_invariant_search/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/r3-r4-metric-invariant-search.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run R3-R4 metric invariant search
+        run: python experiments/cross_domain/r3_r4_metric_invariant_search/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3-r4-metric-invariant-search-journal
+          path: run-data/cross_domain/r3_r4_metric_invariant_search/
+          compression-level: 6

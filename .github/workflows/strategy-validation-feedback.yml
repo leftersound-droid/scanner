@@ -1,0 +1,36 @@
+name: Strategy validation feedback
+
+on:
+  pull_request:
+    paths:
+      - 'src/scanner/memory.py'
+      - 'src/scanner/strategies.py'
+      - 'src/scanner/engine.py'
+      - 'experiments/meta_strategy/strategy_validation_feedback/**'
+      - 'experiments/meta_strategy/lep_muon_blind_feedback/**'
+      - '.github/workflows/strategy-validation-feedback.yml'
+  workflow_dispatch:
+
+jobs:
+  method-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy pyyaml hepdata-cli
+      - name: Run isolated external-validation strategy learner test
+        run: python experiments/meta_strategy/strategy_validation_feedback/run.py
+      - name: Run real DELPHI to OPAL blind strategy feedback test
+        run: python experiments/meta_strategy/lep_muon_blind_feedback/run_with_cli.py
+      - name: Upload method-test journals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strategy-validation-feedback-journal
+          path: |
+            run-data/meta_strategy/strategy_validation_feedback/
+            run-data/meta_strategy/lep_muon_blind_feedback/
+          compression-level: 6

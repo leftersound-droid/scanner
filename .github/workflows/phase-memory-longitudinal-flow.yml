@@ -1,0 +1,28 @@
+name: Phase memory longitudinal flow
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/phase_memory_longitudinal_flow/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/phase-memory-longitudinal-flow.yml'
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run longitudinal flow phase-memory test
+        run: python experiments/cross_domain/phase_memory_longitudinal_flow/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-memory-longitudinal-flow-journal
+          path: run-data/cross_domain/phase_memory_longitudinal_flow/
+          compression-level: 6

@@ -1,0 +1,23 @@
+name: Rotation release with R4 pulse
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run R4 pulse rotation release experiment
+        run: python experiments/cross_domain/rotation_release_with_r4_pulse/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: rotation-release-with-r4-pulse-journal
+          path: run-data/cross_domain/rotation_release_with_r4_pulse/

@@ -1,0 +1,29 @@
+name: Artificial object field graph
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/cross_domain/artificial_object_field_graph/**'
+      - '.github/workflows/artificial-object-field-graph.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install numpy
+        run: python -m pip install numpy
+      - name: Run artificial object field graph probe
+        run: python experiments/cross_domain/artificial_object_field_graph/run.py
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: artificial-object-field-graph-result
+          path: run-data/cross_domain/artificial_object_field_graph/result.json
