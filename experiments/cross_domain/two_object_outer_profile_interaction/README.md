@@ -22,4 +22,6 @@ Observed relative displacement toward the source (lattice-coordinate units; shor
 
 Both sides show displacement toward the source relative to the probe-only control, so the sign is not explained by the intrinsic m=3 directional bias alone.
 
+Journal note: this diagnostic was executed from the already validated fixed-domain operator formulation and its numerical summary is retained here; unlike the phase-frequency and inertial-control Action runs, a full raw GitHub Actions artifact has not yet been created for this diagnostic.
+
 Interpretation limit: this establishes a short-run nonlinear interaction signature in the toy model. It does not yet establish a physical force law, distance law, attraction potential, mass law or gravity analogue.
