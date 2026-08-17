@@ -1,0 +1,30 @@
+name: LEP muon parallel original vs learner
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/meta_strategy/lep_muon_blind_feedback/parallel_original_vs_learner.py'
+      - 'experiments/meta_strategy/lep_muon_blind_feedback/run.py'
+      - 'src/scanner/**'
+      - '.github/workflows/lep-muon-parallel-original-vs-learner.yml'
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy pyyaml hepdata-cli
+      - name: Run original scanner and learner in parallel protocol
+        run: python experiments/meta_strategy/lep_muon_blind_feedback/parallel_original_vs_learner.py
+      - name: Upload full comparison journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lep-muon-parallel-original-vs-learner-journal
+          path: run-data/meta_strategy/lep_muon_parallel_original_vs_learner/
+          compression-level: 6
