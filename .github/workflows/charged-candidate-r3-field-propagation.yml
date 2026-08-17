@@ -1,0 +1,21 @@
+name: Charged candidate R3 field propagation
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run charged candidate R3 field propagation experiment
+        run: python experiments/cross_domain/charged_candidate_r3_field_propagation/run.py
+      - name: Upload full raw journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: charged-candidate-r3-field-propagation-journal
+          path: run-data/cross_domain/charged_candidate_r3_field_propagation/
