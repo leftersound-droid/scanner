@@ -11,7 +11,7 @@ from scanner.self_reflexive_operator import operator_step, directions
 
 OUT = ROOT / 'run-data' / 'cross_domain' / 'r4_pulse_rotation_free_release'
 DIM=4; BACKGROUND=100.0; OBJ_TOTAL=160.0; SIGMA=0.62
-DOMAIN_L1=32; ROT_STEP_DEG=30.0; TRAIN_FRAMES=12; FREE_FRAMES=12; TOTAL_FRAMES=24
+DOMAIN_L1=38; ROT_STEP_DEG=30.0; TRAIN_FRAMES=12; FREE_FRAMES=12; TOTAL_FRAMES=24
 FLOW_PERIOD=12; FLOW_AMP=0.01; MEASURE_L1=6
 DS=directions(DIM)
 
@@ -45,6 +45,15 @@ def object_component(theta: float):
         if val>1e-12: comp[tuple(int(v) for v in c)]=val
     s=sum(comp.values()); k=OBJ_TOTAL/s
     return {c:v*k for c,v in comp.items()}
+
+
+def actual_source_support_l1():
+    support=0
+    for frame in range(TRAIN_FRAMES):
+        comp=object_component(math.radians(ROT_STEP_DEG*frame))
+        if comp:
+            support=max(support,max(sum(abs(v) for v in c) for c in comp))
+    return support
 
 
 def apply_component(phi,old,new):
@@ -155,10 +164,12 @@ def free_stats(rows):
 def main():
     OUT.mkdir(parents=True,exist_ok=True)
     np.savez_compressed(OUT/'domain_coordinates.npz',coord=np.asarray(DOMAIN,dtype=np.int16),local_coord=np.asarray(LOCAL,dtype=np.int16))
-    guard=7+TOTAL_FRAMES < DOMAIN_L1
+    source_support=actual_source_support_l1()
+    guard=source_support+TOTAL_FRAMES < DOMAIN_L1
     if not guard: raise RuntimeError('fixed domain too small for causal boundary isolation')
     results={c['name']:run_case(c) for c in CASES}
     stats={k:free_stats(v['rows']) for k,v in results.items()}
+    no_births=all(v['births_total']==0 for v in results.values())
     summary={
       'experiment':'r4_pulse_rotation_free_release',
       'status':'synthetic pulse/history-release test; operator unchanged; no angular momentum, torque, damping, inertia, EM law or target free-rotation law injected',
@@ -168,8 +179,10 @@ def main():
       'cases':CASES,
       'parameters':{'train_frames':TRAIN_FRAMES,'free_frames':FREE_FRAMES,'rotation_step_deg':ROT_STEP_DEG,
                     'r4_flow_period_frames':FLOW_PERIOD,'r4_flow_amplitude':FLOW_AMP,
-                    'domain_l1':DOMAIN_L1,'domain_points':len(DOMAIN),'measure_l1':MEASURE_L1},
-      'checks':{'boundary_unreachable':guard,'births':{k:v['births_total'] for k,v in results.items()}},
+                    'domain_l1':DOMAIN_L1,'domain_points':len(DOMAIN),'measure_l1':MEASURE_L1,
+                    'actual_source_support_l1':source_support},
+      'checks':{'boundary_unreachable':guard,'zero_births_required_for_validity':no_births,
+                'births':{k:v['births_total'] for k,v in results.items()}},
       'free_stats':stats,
       'raw_rows':{k:v['rows'] for k,v in results.items()},
       'journal':'complete phi input/output, sparse flow input/output, imposed rotation history, R4 pulse metadata and m3 measurement every frame/case'
