@@ -6,7 +6,11 @@ from .memory import GraphMemory
 STRATEGIES = ("direct", "analogy", "hybrid")
 
 class StrategyRouter:
-    """Learns which analysis strategy is efficient without altering the experiment itself."""
+    """Learns analysis routing from memory and external validation feedback.
+
+    The router never changes the physical experiment/operator.  Scientific
+    quality comes only from externally recorded validation scores.
+    """
     def choose(self, problem: Problem, memory: GraphMemory) -> tuple[str, dict[str, Any]]:
         matches = memory.retrieve(problem.fingerprint_tokens())
         best_match = matches[0].score if matches else 0.0
@@ -17,19 +21,19 @@ class StrategyRouter:
         else:
             candidate = "direct"
 
-        measured = []
+        validated = []
         for strategy in STRATEGIES:
             s = memory.strategy_stats(strategy)
-            if s["runs"] >= 3:
-                utility = s["mean_score"] / max(s["mean_ms"], 0.1)
-                measured.append((utility, strategy))
-        if measured:
-            measured.sort(reverse=True)
-            learned = measured[0][1]
-            if best_match < 0.22:
-                candidate = learned
+            if s["validated_runs"] > 0:
+                # Validation quality is primary. Runtime only breaks near-ties;
+                # no physical success threshold is introduced.
+                validated.append((s["mean_validation_score"], -s["mean_ms"], strategy))
+        if validated:
+            validated.sort(reverse=True)
+            candidate = validated[0][2]
 
         return candidate, {
             "best_memory_match": best_match,
             "retrieved": [{"id": m.node_id, "score": m.score, "label": m.node.get("label")} for m in matches],
+            "validation_stats": {s: memory.strategy_stats(s) for s in STRATEGIES},
         }
