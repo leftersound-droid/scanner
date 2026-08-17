@@ -1,0 +1,29 @@
+name: Training film particle collision
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/cross_domain/training_film_particle_collision/**'
+      - 'src/scanner/self_reflexive_operator.py'
+      - '.github/workflows/training-film-particle-collision.yml'
+  workflow_dispatch:
+
+jobs:
+  collision-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy
+      - name: Run teacher-film then free-release collision test
+        run: python experiments/cross_domain/training_film_particle_collision/run.py
+      - name: Upload complete collision journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-film-particle-collision-journal
+          path: run-data/cross_domain/training_film_particle_collision/
+          compression-level: 6
