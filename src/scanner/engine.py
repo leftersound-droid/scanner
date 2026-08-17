@@ -26,11 +26,18 @@ class ScannerEngine:
             raise ValueError(f"Unknown strategy: {strategy}")
         return output, (time.perf_counter() - start) * 1000
 
-    def scan(self, problem: Problem) -> ScanRecord:
+    def scan(self, problem: Problem, *, force_strategy: str | None = None) -> ScanRecord:
         base_out, base_ms = self._run("direct", problem)
         baseline = LayerResult("baseline", "direct", base_out, base_ms)
 
-        strategy, routing = self.router.choose(problem, self.memory)
+        if force_strategy is None:
+            strategy, routing = self.router.choose(problem, self.memory)
+        else:
+            strategy = force_strategy
+            routing = {
+                "forced_for_method_test": True,
+                "validation_stats": {s: self.memory.strategy_stats(s) for s in ("direct", "analogy", "hybrid")},
+            }
         learn_out, learn_ms = self._run(strategy, problem)
         learner = LayerResult("learner", strategy, learn_out, learn_ms, evidence=routing)
 
@@ -40,15 +47,14 @@ class ScannerEngine:
             "learner_ms": learn_ms,
             "speed_ratio_baseline_over_learner": base_ms / learn_ms if learn_ms > 0 else None,
             "strategy_changed": strategy != "direct",
-            "note": "Beta compares execution cost and traceability; scientific quality scoring must be supplied by a domain validator.",
+            "note": "Scientific quality is not generated internally. Use validate_scan() with an external/domain/blind validator.",
         }
         record = ScanRecord(problem, baseline, learner, comparison)
         (self.scans_dir / f"{record.scan_id}.json").write_text(
             json.dumps(record.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-        neutral_score = 1.0 if strategy == "direct" else max(routing.get("best_memory_match", 0.0), 0.01)
-        self.memory.record_strategy(strategy, neutral_score, learn_ms)
+        self.memory.record_strategy_run(strategy, learn_ms)
         pnode = f"problem:{problem.problem_id}"
         snode = f"scan:{record.scan_id}"
         stnode = f"strategy:{strategy}"
@@ -61,3 +67,24 @@ class ScannerEngine:
             self.memory.add_edge(snode, "retrieved_memory", item["id"], similarity=item["score"])
         self.memory.save()
         return record
+
+    def validate_scan(self, record: ScanRecord, score: float, *, details: dict | None = None) -> None:
+        """Attach an externally computed validation result to a completed scan.
+
+        `score` is deliberately opaque to ScannerEngine: the domain experiment
+        defines it.  This prevents the strategy learner from inventing a
+        scientific target or modifying experimental conditions.
+        """
+        strategy = record.learner.strategy
+        self.memory.record_validation(strategy, float(score))
+        snode = f"scan:{record.scan_id}"
+        vnode = f"validation:{record.scan_id}"
+        self.memory.upsert_node({
+            "id": vnode,
+            "kind": "validation",
+            "label": f"validation for {record.scan_id}",
+            "summary": f"external_score={float(score):.12g}",
+            "details": details or {},
+        })
+        self.memory.add_edge(snode, "validated_by", vnode, score=float(score))
+        self.memory.save()
