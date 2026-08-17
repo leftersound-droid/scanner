@@ -19,7 +19,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install numpy
       - name: Run teacher-film then free-release collision test
-        run: python experiments/cross_domain/training_film_particle_collision/run.py
+        run: python experiments/cross_domain/training_film_particle_collision/run_v2.py
       - name: Upload complete collision journal
         if: always()
         uses: actions/upload-artifact@v4
