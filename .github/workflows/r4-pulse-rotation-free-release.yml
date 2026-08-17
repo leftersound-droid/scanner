@@ -2,7 +2,7 @@ name: R4 pulse rotation free release
 
 on:
   push:
-    branches: [agent/scanner-v2-beta]
+    branches: [experiment/r4-pulse-release]
     paths:
       - 'experiments/cross_domain/r4_pulse_rotation_free_release/**'
       - '.github/workflows/r4-pulse-rotation-free-release.yml'
