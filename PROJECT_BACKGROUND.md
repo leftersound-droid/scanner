@@ -1,5 +1,78 @@
 # Project background — self-reflexive P/J framework
 
+## Core methodological principle — fixed operator, evolving teacher and readout (2026-09-05)
+
+Status: **project-level methodological principle**.
+
+The self-reflexive framework is not refined by inserting more physical laws into the operator. The operator is treated as structurally fixed unless a fatal internal contradiction is demonstrated. The evolving parts of the research program are:
+
+1. the input / teacher P,J state or state-orbit;
+2. the conceptual interpretation of what the P,J state represents;
+3. the readout system used to identify emergent distance, time, velocity, acceleration, geometry, mass-like response, energy-like quantities, etc.;
+4. the numerical representation used to approximate the continuous model.
+
+The core separation is
+
+`teacher/input (P,J) -> unchanged operator O -> free P/J dynamics -> readout R -> emergent physical interpretation`.
+
+The operator determines how states evolve, but does not contain Euclidean geometry, Minkowski space-time, GR, inertia, force laws, angular momentum, charge, c, hbar, or other target physical equations. These may only appear as external comparison targets or as readouts of the generated state.
+
+### Self-reflexivity and the role of the teacher
+
+Because the operator is self-reflexive, the detailed input state is not merely an arbitrary initial condition. A sufficiently structured teacher sequence can write relational information into the P/J state and into its surrounding state history. Therefore different admissible teacher/state families can place the same unchanged operator into qualitatively different dynamical regimes.
+
+The research question is not whether an independently specified physical law can be reproduced by coding it into the evolution, but whether an appropriate P/J state family can cause the unchanged operator to generate a free state evolution whose readouts are analogous to a coherent physics.
+
+This means that a failed object or failed physical analogy does not by itself imply that the operator must be changed. It may instead indicate:
+
+- an unsuitable teacher/state family;
+- an incorrect P/J scale or relational characteristic;
+- insufficient relational resolution;
+- an incorrect readout;
+- a numerical representation error;
+- or, only after these are excluded, a structural deficiency of the operator.
+
+### Anti-physics methodology
+
+"Anti-physics" does **not** mean rejecting physical knowledge. It is a construction rule against smuggling the desired physics into the model dynamics.
+
+Known physics has three legitimate roles:
+
+1. **inverse calibration target** — dimensionless physical ratios and qualitative regimes can guide the search for useful P/J state families and alpha/beta characteristics;
+2. **readout validation** — generated states can be compared with Euclidean-, Minkowski-, GR-, quantum-, or particle-like behavior after the free P/J dynamics has been produced;
+3. **falsification reference** — known physical structures can reveal fatal limitations, such as the impossibility of obtaining a consistent causal, geometric, or object-dependent hierarchy from any representation-invariant readout.
+
+Known physics must not be inserted as an evolution law. Thus the following distinction is fundamental:
+
+`dynamics != interpretation`.
+
+A relation such as `v_em = D/T`, an emergent metric candidate, an entropy-like clock, or a curvature-like higher-order descriptor is a **readout**. It is not allowed to feed back into the raw operator unless the model is explicitly redefined as a new hypothesis.
+
+### Model refinement without changing the model
+
+The project can therefore become more physically accurate while the core model remains mathematically the same. Refinement occurs by improving:
+
+- the definition of the continuous P/J state space;
+- the mapping between the continuous model and the numerical scanner;
+- the construction and sampling of teacher P/J orbits;
+- the identification of alpha/beta characteristics and their higher-order relations;
+- the emergent measurement/readout system;
+- the comparison between emergent dimensionless ratios and real physical ratios.
+
+In this sense, the *use and interpretation* of the model evolves, while the operator remains invariant.
+
+### Strong falsification rule
+
+If a desired physical effect appears only after adding a new physical term, stabilizer, force, metric, synchronization law, damping law, or property-specific parameter to the operator, then that effect is **not emergent evidence for the present model**.
+
+If the same unchanged operator produces a qualitatively new stable regime only because the teacher/state family or relational resolution changes, then that regime is a legitimate emergent candidate and may be compared with physics externally.
+
+The preferred research loop is therefore:
+
+`real physical analogy -> inverse constraints on admissible P/J teacher/readout -> unchanged operator -> free dynamics -> emergent readout -> comparison/falsification -> refine teacher/readout`.
+
+The operator should be changed only if a structural contradiction is demonstrated that cannot be removed by representation refinement, teacher refinement, continuum convergence, relational-resolution change, or readout correction.
+
 ## Saved partial result — emergent time/distance candidate series (2026-09-05)
 
 Status: **partial result / candidate readout**, not an established physical law. Must still pass continuum/refinement convergence and representation-invariance tests.
