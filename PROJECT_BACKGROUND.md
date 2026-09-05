@@ -153,3 +153,75 @@ Detailed experiment record:
 `experiments/cross_domain/emergent_time_distance_candidate_series/RESULT.md`
 
 Related experiment commit: `47693dd47217d19fb7f07cc817ebafc201812ba0`.
+
+## Saved intermediate result — model usage methodology: teacher as memory initialization and self-generated local physics (2026-09-05)
+
+Status: **methodological intermediate result / operational rule**, not yet a proof that autonomous physical object classes exist.
+
+### Teacher is memory initialization, not an external law
+The model contains no explicit mechanics, field equation, force law, inertia law, particle rule, or interaction-specific physics. The teacher must therefore be treated as a way to place relational information into the P/J state and its local environmental history, not as a law that continuously drives the system.
+
+Operationally:
+
+`teacher -> P/J memory/state -> unchanged operator O -> free frame-by-frame regeneration -> readout`.
+
+The central test phase is always the free phase after teaching. If the desired property exists only while the teacher continuously overwrites the state, that property belongs to the imposed movie, not to the autonomous model dynamics.
+
+### Self-generated local physics
+In the intended interpretation, an object does not evolve because an external physical law acts on it. Instead its current state, together with the P/J state that it has written into its environment, becomes the input for the same operator in the next frame:
+
+`object state -> local/environmental P/J memory -> O -> next object state`.
+
+Thus the object and environment can, in principle, regenerate the same relational characteristics frame by frame. What is read externally as inertia, internal period, propagation, interaction, or geometry deformation would then be a persistent readout of this self-reproducing P/J state relation rather than a separately encoded physical law.
+
+The more precise formulation is therefore not that the object alone “creates its own physics”, but that the **object–background P/J state pair regenerates the local effective physics** through the unchanged self-reflexive operator.
+
+### Mock object versus autonomous model object
+A visually or geometrically convincing particle-like movie is not sufficient.
+
+A **mock/model puppet** is externally maintained frame by frame. Its apparent stability or motion may be present in the supplied P geometry while the required dynamical graph is absent.
+
+A candidate **autonomous model object** is one for which a finite teacher phase is followed by free evolution in which the characteristic relational orbit is at least partially regenerated without external rewriting.
+
+The relevant criterion is not exact pixelwise recurrence. A model object may deform, drift, pulse, decay, or return only modulo an emergent equivalence. What should persist is an invariant or quasi-invariant relational orbit, schematically
+
+`Gamma(n+T) ~ Gamma(n)`
+
+under an admissible emergent readout.
+
+A dynamically consistent decaying object can therefore be a more valid object teacher than an artificially stable particle image.
+
+### Object–background memory is part of the state
+The environment is not a passive container. Previous tests showed that different background P/J states measurably alter later free object evolution, while an object also leaves a persistent P/J trace in its surroundings. Therefore object and background cannot generally be separated at the level of the raw state.
+
+The relevant state is closer to
+
+`Gamma_local = (Gamma_object, Gamma_background)`
+
+with both parts participating in the next-frame operator input.
+
+This also explains why fully overwriting the P field at each teacher frame is methodologically dangerous: it erases environmental P-memory and reduces the teacher history largely to whatever normalized previous-J information survives. A valid teacher protocol should preserve self-generated environmental state whenever the experiment intends to test object–background memory.
+
+### Strong operational falsification rules
+The following are now project-level usage constraints:
+
+1. **No property counts as emergent while it requires continuous external frame overwrite.**
+2. **A teacher may initialize or guide a state orbit, but free evolution must test whether the relational characteristic regenerates.**
+3. **Visual/geometric similarity is insufficient; dynamic graph consistency is required.**
+4. **A failed taught orbit does not by itself falsify the existence of autonomous objects; it may be a mock orbit incompatible with the operator.**
+5. **A property-specific force, damping, stabilizer, synchronization term, or target equation may not be added to rescue the orbit.**
+6. **Object and background memory must be preserved unless the experiment explicitly tests a reset/overwrite condition.**
+7. **The next search target is not a prettier teacher movie but an allowed self-reproducing P/J object–background orbit.**
+
+### Consequence for the Newton/Minkowski/GR hierarchy
+The same principle changes how the geometry hierarchy should be tested:
+
+- **Newton-like readout:** seek a sufficiently coarse autonomous object orbit whose internal complexity can be integrated out and whose center behaves mass-point-like without adding inertia.
+- **Minkowski-like readout:** test the same or a richer autonomous P/J orbit for 4D representation invariance and an emergent 3+1 projection.
+- **GR-like readout:** require a dynamically consistent object–background history with internal dynamics and environmental memory; a static or continuously maintained geometric particle mock is not a valid high-order source test.
+
+Therefore the main next research question is:
+
+`Which background states admit autonomous or quasi-autonomous P/J object–background orbits under the unchanged operator?`
+
+Only after such an orbit is found should its coarse Newton-like, 4D/Minkowski-like, and higher-order GR-like readouts be compared as different resolutions of the same generated state.
